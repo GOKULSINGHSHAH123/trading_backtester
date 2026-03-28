@@ -34,6 +34,7 @@ dependencies = [
 [project.scripts]
 backtester-run = "backtester.run_simulation:main"
 backtester-migrate = "backtester.scripts.run_migration:main"
+backtester-daily = "backtester.runner:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
