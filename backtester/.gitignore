@@ -1,0 +1,13 @@
+.env
+backtest_results/
+.venv/
+myenv/
+__pycache__/ 
+simulation_config.yml
+configs/migration_config.yml
+.DS_Store
+point_break*.*
+strategies/a_test.py
+*.pdf
+nifty_renko*
+lotSizes_map.json

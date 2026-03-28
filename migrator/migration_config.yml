@@ -1,0 +1,83 @@
+# Migration Configuration
+# Defines parameters for the data ingestion process (previously config.py)
+
+# Database Name
+db_name: "gokul_db"
+
+# Date Range (Format: DD-MM-YYYY)
+starting_date: "01-02-2025"
+ending_date: "28-05-2025"
+
+# Expiry Filter (Days)
+expiry_days: 14
+
+# Data Projections (MongoDB)
+underlying_projection:
+  _id: 0
+  sym: 1
+  ti: 1
+  o: 1
+  h: 1
+  l: 1
+  c: 1
+  v: 1
+
+options_projection:
+  _id: 0
+  sym: 1
+  ti: 1
+  o: 1
+  h: 1
+  l: 1
+  c: 1
+  oi: 1
+  expiry: 1
+
+futures_projection:
+  _id: 0
+  sym: 1
+  ti: 1
+  o: 1
+  h: 1
+  l: 1
+  c: 1
+  v: 1
+  u: 1
+  oi: 1
+
+daily_candle_required : true
+
+# Source DB Names (maps config instrument keys to their source MongoDB database names)
+source_db_names:
+  index_futures: index_futures_db
+  index_options: index_options_filled
+  index: index_spot_db
+  stock_futures: stock_futures_db
+  stock_options: stock_options
+  stocks: stocks_db
+  commodity_futures: mcx_futures_db
+
+# For options instruments, maps the options source DB name to its corresponding spot source DB name
+spot_db_for_options:
+  index_options_filled: index_spot_db
+  stock_options: stocks_db
+
+# Instrument Lists
+# Leave empty to ignore, or populate to process specific instruments
+index_options: 
+  - 'NIFTY'
+  # - 'BANKNIFTY'
+
+stocks : []
+
+# ['360ONE', '3MINDIA', 'AADHARHFC', 'AARTIIND', 'AAVAS', 'ABB', 'ABBOTINDIA', 'ABCAPITAL', 'ABFRL', 'ABFRL', 'ABSLAMC', 'ACC', 'ACE', 'ACI', 'ADANIENSOL', 'ADANIENT', 'ADANIGREEN', 'ADANIPORTS', 'ADANIPOWER', 'AEGISLOG', 'AETHER', 'AFFLE', 'AIAENG', 'AJANTPHARM', 'AKUMS', 'ALKEM', 'ALKYLAMINE', 'ALLCARGO', 'ALOKINDS', 'AMBER', 'AMBUJACEM', 'ANANDRATHI', 'ANANTRAJ', 'ANGELONE', 'ANURAS', 'APARINDS', 'APLAPOLLO', 'APLLTD', 'APOLLOHOSP', 'APOLLOTYRE', 'APTUS', 'ASAHIINDIA', 'ASHOKLEY', 'ASIANPAINT', 'ASTERDM', 'ASTRAL', 'ASTRAZEN', 'ATGL', 'ATUL', 'AUBANK', 'AUROPHARMA', 'AUTOBEES', 'AVANTIFEED', 'AWL', 'AXISBANK', 'BAJAJ-AUTO', 'BAJAJFINSV', 'BAJAJHLDNG', 'BAJFINANCE', 'BALAMINES']
+  
+index: []
+
+stock_options: []
+
+commodity_futures: [] # ["GOLD", "CRUDEOIL"]
+
+index_futures: []
+
+stock_futures: []

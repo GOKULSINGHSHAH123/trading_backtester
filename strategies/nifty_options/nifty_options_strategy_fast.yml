@@ -1,0 +1,17 @@
+# Configuration for Nifty Options RSI Strategy (Fast Mode)
+strategy_id: "NIFTY_RSI_OPT_FAST_001"
+strategy_path: "nifty_options.nifty_options_strategy_fast.NiftyOptionsStrategyFast"
+
+# We trigger logic based on the Index Spot Price
+instrument_source:
+  - 'NIFTY 50'
+
+# We need 5m candles for RSI and Entry Logic
+timeframes: ["5m"]
+
+parameters:
+  quantity: 75              # 1 Lot
+  stop_loss_pct: 0.30       # 30% of Option Premium
+  max_pe_count: 3
+  max_ce_count: 3
+  price_move_threshold: 0

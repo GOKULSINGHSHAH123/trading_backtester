@@ -1,0 +1,61 @@
+# Master Simulation Configuration
+# Defines the data source, portfolio version, and strategies for a single backtest run.
+
+# --- Experiment Tracking ---
+# A descriptive name for this set of runs (e.g., "Nifty_Grid_Strategy_Opt")
+experiment_name: "forCommit"
+
+# A specific tag for this run (e.g., "tight_sl_v1", "high_vol_filter")
+run_tag: "trial"
+
+# --- Validation Configuration ---
+# Whether to run the trade log validator after the simulation
+validate_results: true
+
+# if options strategy.
+is_options_segment: true
+
+# If commodity futures strategy (sets hours to 9:00 AM - 11:30 PM)
+is_commodity_futures: false
+
+# Whether to aggregate trades in the final trades.csv (same symbol/side/times)
+enable_trade_aggregation: true
+
+# --- Database Configuration ---
+db_name: "gokul_db"
+
+# --- Simulation Scope ---
+starting_ti_year: "01-01-2025"
+ending_ti_year: "31-03-2025"
+
+timeframes:
+  - "1m"
+  - "5m"
+  - "15m"
+
+# List of instruments to be used in the simulation
+instruments: 
+  - 'NIFTY 50'
+  # - 'ACC'
+  # - 'AMBUJACEM'
+  # - 'ADANIENT'
+  # - 'ADANIPORTS'
+  # - 'AARTIIND'
+  # - 'ATUL'
+  # - 'ALKEM'
+  # - 'AJANTPHARM'
+
+# --- Strategy Root ---
+# Directory where your strategy folders live (relative to this config file).
+# The backtester adds this directory to sys.path so strategy modules can be imported.
+# Default: same directory as this config file (i.e., ".")
+strategy_root: "./strategies"
+
+# List of paths to the strategy configuration files (relative to this config file)
+strategy_configs:
+  # - "./strategies/nifty_options/nifty_options_strategy_fast.yml"
+  - "./strategies/multi_tf_ema_fast/multi_tf_ema_fast.yml"
+  # - "./strategies/rsi_ema_mtf/rsi_ema_mtf.yml"
+  # - "./strategies/pair_trader/pair_trader_1.yml"
+
+buffer_days: 10

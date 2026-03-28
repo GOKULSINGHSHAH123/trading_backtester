@@ -1,0 +1,14 @@
+# Configuration for the RSI_EMA_MTF strategy
+strategy_id: "RSI_EMA_MTF"
+strategy_path: "rsi_ema_mtf.rsi_ema_mtf.RSI_EMA_MultiTimeframe"
+
+# Which instruments to use from the data provider's list.
+# 'all' uses the entire list. Alternatively, you can provide a list of symbols.
+instrument_source: all
+
+# Timeframes required for the instruments used by this strategy
+timeframes: ["1m", "5m", "15m"]
+
+# Strategy-specific parameters
+parameters:
+  quantity: 75

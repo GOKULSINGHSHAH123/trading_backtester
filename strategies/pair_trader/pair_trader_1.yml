@@ -1,0 +1,17 @@
+# Configuration for Pair Trading Strategy
+strategy_id: "PAIR_TRADER_FAST_001"
+strategy_path: "pair_trader.pair_trader_fast.PairTraderFast"
+
+# We request 'all' instruments so we can access any pair defined below
+instrument_source: all
+
+# Timeframes to process
+timeframes: ["1m"]
+
+parameters:
+  quantity: 100
+  pairs:
+    - ["TCS", "INFY"]
+    - ["HDFCBANK", "ICICIBANK"]
+    - ["SUNPHARMA", "CIPLA"]
+    - ["TATASTEEL", "JINDALSTEL"]
