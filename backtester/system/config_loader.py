@@ -3,6 +3,7 @@ import importlib
 import os
 import sys
 import logging
+from datetime import datetime
 from dotenv import load_dotenv # type: ignore
 from typing import Any, Dict, List, Tuple
 from backtester.system.data_provider import BaseDataProvider
@@ -35,6 +36,13 @@ def load_simulation_config(master_config_path: str) -> Tuple[Dict[str, Any], Lis
     master_config = _load_yaml(master_config_path)
     config_dir = os.path.dirname(os.path.abspath(master_config_path))
 
+    # Daily mode: auto-set start and end dates to today
+    if master_config.get('daily_mode', False):
+        today_str = datetime.now().strftime("%d-%m-%Y")
+        master_config['starting_ti_year'] = today_str
+        master_config['ending_ti_year'] = today_str
+        logger.info(f"[DAILY MODE] Date range auto-set to today: {today_str}")
+
     # 1. Prepare Data Configuration (Sourced directly from Master Config)
     # We create a clean dict for the DataProvider to avoid passing unnecessary system keys
     data_config = {
@@ -46,7 +54,8 @@ def load_simulation_config(master_config_path: str) -> Tuple[Dict[str, Any], Lis
         "is_options_segment" : master_config["is_options_segment"],
         "is_commodity_futures": master_config.get("is_commodity_futures", False),
         "validate_results" : master_config["validate_results"],
-        "max_instruments_per_collection": master_config.get("max_instruments_per_collection", 50)
+        "max_instruments_per_collection": master_config.get("max_instruments_per_collection", 50),
+        "daily_mode": master_config.get("daily_mode", False),
     }
     
     # Inject Database URI from Environment

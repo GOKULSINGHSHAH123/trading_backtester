@@ -173,18 +173,38 @@ def run_simulation(data_config: Dict[str, Any], strategies: List[BaseStrategy], 
 
             logger.info(f"\n[COLLECTION {collection_num}] Completed.")
 
+            daily_mode = data_config.get('daily_mode', False)
+
             # Finalize the completed backtest for this collection
             logger.info(f"[COLLECTION {collection_num}] Finalizing trades...")
             if last_timestamp is not None:
-                logger.info(f"[LIQ] Triggering portfolio liquidation at TS: {last_timestamp}")
-                portfolio.liquidate_portfolio(current_prices, last_timestamp)
-                
-                # Capture final state after liquidation so MTM curve ends exactly at Realized PnL
-                logger.info("[LIQ] Capturing post-liquidation snapshot...")
-                for strategy in strategies:
-                    portfolio.store_mtm_snapshot(strategy.strategy_id, current_prices, last_timestamp)
+                if daily_mode:
+                    # Daily mode: persist open positions to MongoDB instead of liquidating
+                    logger.info("[DAILY] Capturing final MTM snapshot...")
+                    for strategy in strategies:
+                        portfolio.store_mtm_snapshot(strategy.strategy_id, current_prices, last_timestamp)
+
+                    logger.info("[DAILY] Saving open positions to MongoDB...")
+                    portfolio.save_all_open_positions_to_db()
+
+                    logger.info("[DAILY] Saving strategy states to MongoDB...")
+                    for strategy in strategies:
+                        if hasattr(strategy, 'save_state_to_db'):
+                            try:
+                                strategy.save_state_to_db()
+                                logger.info(f"   ✓ State saved for {strategy.strategy_id}")
+                            except Exception as e:
+                                logger.error(f"   ✗ Failed to save state for {strategy.strategy_id}: {e}")
+                else:
+                    # Historical mode: liquidate all open positions at end of run
+                    logger.info(f"[LIQ] Triggering portfolio liquidation at TS: {last_timestamp}")
+                    portfolio.liquidate_portfolio(current_prices, last_timestamp)
+
+                    logger.info("[LIQ] Capturing post-liquidation snapshot...")
+                    for strategy in strategies:
+                        portfolio.store_mtm_snapshot(strategy.strategy_id, current_prices, last_timestamp)
             else:
-                logger.error(f"[EXCEPTION] No timestamps processed for collection {collection_num}. Skipping liquidation.")
+                logger.error(f"[EXCEPTION] No timestamps processed for collection {collection_num}. Skipping finalization.")
 
             # Flush the completed collection's trades to disk
             portfolio.persist_trade_history()

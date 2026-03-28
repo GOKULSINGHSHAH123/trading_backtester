@@ -59,3 +59,10 @@ strategy_configs:
   # - "./strategies/pair_trader/pair_trader_1.yml"
 
 buffer_days: 10
+
+# --- Daily Mode ---
+# When true: start/end dates are auto-set to today, open positions and strategy
+# state are persisted to MongoDB between runs (no end-of-day liquidation).
+# Requires STATUS_DB_URI in .env pointing to a MongoDB instance for state storage.
+# When false (default): standard historical backtest — positions liquidated at end.
+daily_mode: false

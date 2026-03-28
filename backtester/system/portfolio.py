@@ -12,6 +12,9 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional, Tuple
 import polars as pl # type: ignore
 from datetime import datetime
+from pymongo import MongoClient # type: ignore
+from pymongo.database import Database
+from pymongo.collection import Collection
 
 from backtester.system.interfaces import Position
 
@@ -57,24 +60,128 @@ class Portfolio:
     _cached_open_df: Optional[pl.DataFrame] = field(init=False, repr=False, default=None)
     _is_dirty: bool = field(init=False, repr=False, default=True)
 
+    # MongoDB connection for daily-mode position persistence (populated if STATUS_DB_URI is set)
+    _mongo_client: Optional[MongoClient] = field(init=False, repr=False, default=None)
+    _db: Optional[Database] = field(init=False, repr=False, default=None)
+    _open_positions_collection: Optional[Collection] = field(init=False, repr=False, default=None)
+
 
     def __post_init__(self):
-        """Initialize clean state and remove existing output files."""
+        """Initialize clean state, set up MongoDB if available, and remove existing output files."""
         self._cached_df = None
         self._last_count = 0
         self._cached_open_df = None
         self._is_dirty = True
+        self._mongo_client = None
+        self._db = None
+        self._open_positions_collection = None
+
+        # Connect to status DB and load any persisted open positions (daily mode)
+        self._initialize_mongodb()
+        self._load_open_positions_from_db()
 
         # Clean up existing output files
         if os.path.exists(self.trade_log_filename):
             os.remove(self.trade_log_filename)
-            
+
         # Clean up any previous strategy output files
         for f in glob.glob("output_*.json"):
             try:
                 os.remove(f)
             except OSError:
                 pass
+
+    def _initialize_mongodb(self):
+        """Connect to STATUS_DB_URI for position persistence. No-op if URI not set."""
+        logger = logging.getLogger(__name__)
+        status_uri = os.getenv('STATUS_DB_URI')
+        if not status_uri:
+            return
+        try:
+            self._mongo_client = MongoClient(status_uri, serverSelectionTimeoutMS=5000)
+            self._db = self._mongo_client["status_manager"]
+            self._open_positions_collection = self._db["open_positions"]
+            logger.info("Portfolio: MongoDB connected for position persistence")
+        except Exception as e:
+            logger.warning(f"Portfolio: Could not connect to STATUS_DB_URI: {e}")
+
+    def _load_open_positions_from_db(self):
+        """
+        Reload persisted open positions from MongoDB into memory.
+        Skipped silently when STATUS_DB_URI is not configured.
+        """
+        logger = logging.getLogger(__name__)
+        if self._open_positions_collection is None:
+            return
+        try:
+            docs = list(self._open_positions_collection.find({}))
+            if not docs:
+                logger.info("Portfolio: No open positions found in DB")
+                return
+            loaded = 0
+            for doc in docs:
+                try:
+                    strategy_id = doc['strategy_id']
+                    symbol      = doc['symbol']
+                    trade_id    = doc['trade_id']
+                    position = Position(
+                        symbol=symbol,
+                        trade_id=trade_id,
+                        quantity=doc['quantity'],
+                        entry_price=doc['entry_price'],
+                        entry_timestamp=doc['entry_timestamp'],
+                        metadata=doc.get('metadata', {}),
+                        running_pnl_points=doc.get('running_pnl_points', 0.0),
+                        running_pnl_pct=doc.get('running_pnl_pct', 0.0),
+                        last_known_price=doc.get('last_known_price', 0.0),
+                        last_update_timestamp=doc.get('last_update_timestamp', doc['entry_timestamp']),
+                    )
+                    self.open_positions[strategy_id][symbol][trade_id] = position
+                    self.active_trade_map[trade_id] = (strategy_id, symbol)
+                    loaded += 1
+                except KeyError as e:
+                    logger.error(f"Portfolio: Skipping invalid position doc, missing field: {e}")
+            self._is_dirty = True
+            logger.info(f"Portfolio: Restored {loaded} open position(s) from DB")
+        except Exception as e:
+            logger.error(f"Portfolio: Error loading open positions from DB: {e}")
+
+    def save_all_open_positions_to_db(self):
+        """
+        Persist ALL current open positions to MongoDB (full replace).
+        Called at end of collection when daily_mode is enabled — replaces liquidation.
+        No-op when STATUS_DB_URI is not configured.
+        """
+        logger = logging.getLogger(__name__)
+        if self._open_positions_collection is None:
+            logger.warning("Portfolio: STATUS_DB_URI not set — cannot save open positions")
+            return
+        try:
+            self._open_positions_collection.delete_many({})
+            saved = 0
+            for strategy_id, strat_positions in self.open_positions.items():
+                for symbol, trades in strat_positions.items():
+                    for trade_id, pos in trades.items():
+                        self._open_positions_collection.insert_one({
+                            'trade_id':             pos.trade_id,
+                            'strategy_id':          strategy_id,
+                            'symbol':               pos.symbol,
+                            'quantity':             pos.quantity,
+                            'entry_price':          pos.entry_price,
+                            'entry_timestamp':      pos.entry_timestamp,
+                            'metadata':             pos.metadata,
+                            'running_pnl_points':   pos.running_pnl_points,
+                            'running_pnl_pct':      pos.running_pnl_pct,
+                            'last_known_price':     pos.last_known_price,
+                            'last_update_timestamp': pos.last_update_timestamp,
+                        })
+                        saved += 1
+            if saved:
+                logger.info(f"Portfolio: Saved {saved} open position(s) to MongoDB")
+            else:
+                logger.info("Portfolio: No open positions to save (all closed)")
+        except Exception as e:
+            logger.error(f"Portfolio: Error saving open positions to MongoDB: {e}")
 
 
     @property
